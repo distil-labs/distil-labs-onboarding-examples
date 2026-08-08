@@ -1,0 +1,34 @@
+base:
+  task: question-answering
+  student_model_name: Qwen3-0.6B
+  teacher_model_name: openai.gpt-oss-120b
+  llm_num_parallel_requests: 64
+
+tuning:
+  # Batch 8 divides the optimizer-step count by 8, so the epochs rise with it. At one epoch
+  # this config lands short of the teacher and the workflow's Decide step reads Retune.
+  num_train_epochs: 4
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+
+synthgen:
+  generation_target: 512
+  generation_iteration_size: 128
+  output_is_json: true
+  # The severity rules key off component and level only, so the mutator grid forces exactly
+  # those two dimensions: every component is generated at every level. Without this the
+  # teacher under-produces the combinations that make the exception rules visible
+  # (authentication at FATAL, database at WARN), and the student falls back to reading the
+  # level alone.
+  basic_mutators_to_use: []
+  mutation_topics:
+    - - authentication services
+      - payment services
+      - database services
+      - ingest and queueing services
+      - frontend and edge services
+      - search and indexing services
+    - - lines logged at FATAL level
+      - lines logged at ERROR level
+      - lines logged at WARN level
+      - lines logged at INFO level

@@ -1,0 +1,70 @@
+base:
+  task: question-answering
+  student_model_name: Qwen3-0.6B
+  teacher_model_name: openai.gpt-oss-120b
+  # Throughput only, but it interacts with trace relabelling: the runs behind the results
+  # table processed traces at 32 and generated at 64. Raising it does not change what is
+  # produced, and it does not reduce the relabel loss either.
+  llm_num_parallel_requests: 64
+
+tuning:
+  # 4 epochs and batch 8 is the best of a four-run sweep (see the README results table).
+  # Epochs are the lever that matters: 3 epochs on half this data beat 1 epoch on all of
+  # it, because repeated passes are what commit a 48-code vocabulary to memory.
+  num_train_epochs: 4
+  # With gradient_accumulation_steps at its default 1, batch 8 means 8x fewer optimizer
+  # steps per epoch. That produced the best whole-record score but a WORSE per-tag F1 than
+  # batch 1 (0.683 vs 0.725): fewer under-tagged answers, more swapped ones. If per-tag
+  # quality matters more than exact-set for your task, use batch 1.
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+
+synthgen:
+  generation_target: 1000
+  generation_iteration_size: 128
+  output_is_json: true
+  # Bottom of the legal range for a reasoning teacher (0.5-0.7). The answers are JSON
+  # objects, and trace relabelling rewrites each conversation whole, so the teacher has to
+  # emit JSON inside JSON with correct escaping; at 0.7 it failed to do so on 27 of 50
+  # traces.
+  teacher_temperature: 0.5
+  # The taxonomy has 48 codes to cover, so coverage is forced rather than hoped for.
+  # Dimension one drives the families and the two rule cases that carry the base-model gap
+  # (the IMPASSABLE override and the empty tag list); dimension two drives the five report
+  # registers. Without this the teacher under-produces suppression and empty-set cases,
+  # which are exactly the ones the student must learn. Verified in the output rather than
+  # assumed: mutation topics are suggestions and can silently yield nothing.
+  #
+  # NOT fixed here, and it is the binding constraint on the final score: ~10% of generated
+  # rows carrying an IMPASSABLE tag violate the override themselves, and override misses
+  # were the one error class no training lever improved. Restating the override in
+  # job_description.json's synthetic_data_generation_instructions is the first thing to try.
+  basic_mutators_to_use: []
+  mutation_topics:
+    - - reports where the trail is blocked outright and other conditions are also described
+      - reports where the trail is in good order and nothing is reportable
+      - reports about degraded trail structures, signage and route marking
+      - reports about seasonal snow, ice, water and mud conditions
+      - reports about camps, bugs, crowding and trailhead conditions
+      - reports that turn on a close-neighbour tag distinction
+    - - written as a terse trailhead logbook entry
+      - written as a chatty first-person trip report
+      - written as a formal ranger patrol note
+      - written as a trail crew work report
+      - written as a clipped satellite messenger message
+
+trace_processing:
+  observation_format: openai_messages
+  num_traces_as_training_base: 50
+  num_traces_as_testing_base: 100
+  # PER SPLIT, not total, and checked after relabelling has dropped 55-60% of traces. So it
+  # must sit well below what the 50-trace training base yields — about 21 examples — while
+  # staying high enough that a badly thinned split fails loudly. At 20 the margin is one
+  # example and roughly half of first runs fail.
+  min_generated_examples: 12
+  relabel: true
+  # Every trace is generated from the taxonomy, so all 500 are on-task by construction and
+  # the relevance filter can only cost examples. Measured: filtering on dropped traces
+  # that a hand check confirmed were valid task examples.
+  relevance_filtering: false
+  evaluate_original_model: true

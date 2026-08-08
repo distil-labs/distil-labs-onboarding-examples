@@ -1,0 +1,30 @@
+{"messages": [{"role": "user", "content": "stn_qa defect=K4 sev=minor lot=L-1067 op=PE press=6"}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=spine-void sev=critical lot=L-1026 op=DM press=1"}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "{\"defect\": \"T7\", \"severity\": \"critical\", \"lot\": \"L-1111\", \"units\": 565, \"op\": \"GV\", \"press\": 5}"}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<board-slip> severity=<critical> :: lot L-1034 shift=day units=244"}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "{\"defect\": \"spine-void\", \"severity\": \"major\", \"lot\": \"L-1054\", \"units\": 315, \"op\": \"MW\", \"press\": 3}"}, {"role": "assistant", "content": "rework_signature"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<V3> severity=<critical> :: lot L-1150 shift=day units=623"}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<blind-shift> severity=<trace> :: lot L-1122 shift=night units=546"}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "Bindery inspection note: run L-1108 came back with a die-crush at minor severity; 111 units affected, operator MW."}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=hinge-gap sev=critical lot=L-1146 op=KL press=2"}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<board-slip> severity=<major> :: lot L-1063 shift=day units=725"}, {"role": "assistant", "content": "rework_signature"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=M9 sev=critical lot=L-1006 op=OS press=2"}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=H6 sev=trace lot=L-1116 op=OS press=2"}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=ribbon-bleed sev=trace lot=L-1094 op=GV press=6"}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "{\"defect\": \"foredge-wave\", \"severity\": \"critical\", \"lot\": \"L-1024\", \"units\": 390, \"op\": \"JA\", \"press\": 2}"}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=board-slip sev=minor lot=L-1084 op=DM press=4"}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<QT-2> severity=<critical> :: lot L-1014 shift=day units=630"}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=head-nib sev=major lot=L-1127 op=JA press=3"}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "Line check: run L-1016 came back with a QT-2 at critical severity; 369 units affected, operator RB."}, {"role": "assistant", "content": "rebind_unit"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<K4> severity=<minor> :: lot L-1085 shift=swing units=224"}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "QA walk note: run L-1077 came back with a board-slip at minor severity; 401 units affected, operator HN."}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "Line check: run L-1136 came back with a hinge-gap at major severity; 72 units affected, operator MW."}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<WK-4> severity=<critical> :: lot L-1103 shift=night units=339"}, {"role": "assistant", "content": "mark_and_pass"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<sigswap> severity=<major> :: lot L-1043 shift=night units=81"}, {"role": "assistant", "content": "rework_signature"}]}
+{"messages": [{"role": "user", "content": "{\"defect\": \"cold-bead\", \"severity\": \"critical\", \"lot\": \"L-1142\", \"units\": 278, \"op\": \"MW\", \"press\": 3}"}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<hinge-gap> severity=<major> :: lot L-1135 shift=swing units=338"}, {"role": "assistant", "content": "quarantine_lot"}]}
+{"messages": [{"role": "user", "content": "Finishing floor note: run L-1049 came back with a short-cut at major severity; 374 units affected, operator RB."}, {"role": "assistant", "content": "rework_signature"}]}
+{"messages": [{"role": "user", "content": "[BINDERY-QA] defect=<head-nib> severity=<minor> :: lot L-1069 shift=day units=651"}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=dogear sev=major lot=L-1040 op=MW press=2"}, {"role": "assistant", "content": "rework_signature"}]}
+{"messages": [{"role": "user", "content": "{\"defect\": \"ribbon-bleed\", \"severity\": \"minor\", \"lot\": \"L-1083\", \"units\": 836, \"op\": \"JA\", \"press\": 4}"}, {"role": "assistant", "content": "press_and_hold"}]}
+{"messages": [{"role": "user", "content": "stn_qa defect=foredge-wave sev=major lot=L-1057 op=KL press=5"}, {"role": "assistant", "content": "rework_signature"}]}
