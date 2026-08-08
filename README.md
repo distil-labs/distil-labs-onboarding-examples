@@ -30,37 +30,3 @@ classification looks like when the label boundaries are genuinely unguessable.
 **production traces** rather than a curated dataset. It is shipped as an honest partial
 success: tuning beats the production model it replaces but lands well short of the teacher, and
 the README explains exactly why.
-
-## What makes these tasks work
-
-Every one is built so a base model cannot guess its way through:
-
-- **Invented mappings.** Nothing in pretraining knows that `sso-gw` means `authentication`.
-- **An exception rule** that overrides the signal a model would otherwise key on, so reading
-  the obvious feature is wrong every time.
-- **Decoy fields** — counts, dates, weights — that look meaningful and never affect the answer.
-
-That construction is the point. A task a base model can half-guess produces a gap you cannot
-trust, whatever the score says.
-
-The `trail-report-tagging` README is worth reading even if traces are not your starting point:
-it is the one that did **not** reach the teacher, and it says why.
-
-## Using them
-
-Each directory is a job input in the shape the platform expects. Submit it unchanged to
-reproduce the numbers, or copy one as the skeleton for your own task.
-
-Two of the three ship the generator that produced their data — `generate_input.py` and
-`generate_traces.py` — so you can see how the rules, the decoys and the test set were
-constructed, and adapt the same shape to your own domain.
-
-**Expect the numbers to move.** Generation and judging both run at non-zero temperature, so a
-rerun will not reproduce them to the decimal. Each README gives the range measured across
-several runs; treat a difference inside that band as noise.
-
-## Building your own
-
-The workflow these examples were built with lives in the
-[building-models skill](https://github.com/distil-labs/building-models-skill), which covers
-preparing data, evaluating a teacher, generating synthetic data, training, and deployment.
