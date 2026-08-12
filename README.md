@@ -1,19 +1,36 @@
 # Distil Labs onboarding examples
 
 Three complete, worked examples of small models built on the
-[distil labs](https://distillabs.ai) platform. Each one is a directory you can submit as-is:
-the data, the job description, and the config that produced the numbers below.
+[distil labs](https://distillabs.ai) platform. Each one is a single directory you submit as-is:
+the data, the job description, and the config. There is nothing to generate first, no script to
+run, and no input format to choose.
 
 They exist to answer one question — *what does a task that distils well actually look like?* —
-because the shape of the task matters far more than any setting.
+because the design of the task matters far more than any setting.
 
-| Example | Task type | Base → tuned | Teacher | Pipeline |
-|---|---|---|---|---|
-| [`incident-triage`](incident-triage/) | `question-answering` | 0.60 → **0.98** | 1.00 | ~21 min |
-| [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | 0.20 → **1.00** | 1.00 | ~15 min |
-| [`trail-report-tagging`](trail-report-tagging/) | `question-answering`, from production traces | 0.04 → **0.56** | 0.89 | ~42 min |
+```
+         openai.gpt-oss-120b                     Qwen3-0.6B
+       .----------------------.              .----------------.
+       |                      |  synthetic   |                |
+       |       TEACHER        |--- data  --->|     STUDENT    |
+       |                      |  + tuning    |                |
+       '----------------------'              '----------------'
+           solves the task                    runs on every line,
+           too big to deploy                  at a fraction of the cost
+```
+
+| Example | Task type | Input directory | Input format |
+|---|---|---|---|
+| [`incident-triage`](incident-triage/) | `question-answering` | `base-input/` | one logfmt log line |
+| [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | `base-input/` | one `stn_qa` logfmt line |
+| [`trail-report-tagging`](trail-report-tagging/) | `question-answering`, from production traces | `traces-input/` | one first-person trip report |
 
 All three distil `Qwen3-0.6B` from `openai.gpt-oss-120b`.
+
+## How to run one
+
+Submit the example's input directory as a job input. Every example has exactly one input
+directory and one way to run it.
 
 ## What each one shows
 
@@ -26,7 +43,7 @@ completely.
 base model that scores exactly chance because it collapses to a single label. Shows what
 classification looks like when the label boundaries are genuinely unguessable.
 
-**`trail-report-tagging`** — free-text field reports in, a list of tag codes out, built from
+**`trail-report-tagging`** — free-text trip reports in, a list of tag codes out, built from
 **production traces** rather than a curated dataset. It is shipped as an honest partial
 success: tuning beats the production model it replaces but lands well short of the teacher, and
 the README explains exactly why.

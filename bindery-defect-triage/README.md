@@ -1,19 +1,54 @@
 # bindery-defect-triage
 
-A worked job-input directory for a `classification` build — the first example of that task type
-in this repo — sized so the whole pipeline runs in about 15 minutes on the fast path (about 24
-with the prescribed smoke runs). A base `Qwen3-0.6B` collapses to a single label and scores
-chance; 555 synthetic examples and 4 epochs take it to the teacher's score.
+## What it does
 
-`base-input/` is the input directory as the stages expect it — submit it as-is
-as a job input, unchanged.
+A defect triage service for the finishing floor of a book bindery. It reads one inspection line
+typed by a QA station and returns one disposition code: what happens to the affected units.
+Rebind them, rework the signature, press and hold, quarantine the lot, or mark and pass.
 
-## The task
+## Why this needs a model
 
-One QA inspection line from a book-bindery finishing floor in, one disposition label out:
+The routing rules are a closed table, so a lookup would do — if the input were already parsed
+and the vocabulary never moved. Neither holds. The defect names are the plant's own shorthand,
+30 of them, and six read like a station they do not belong to: `spine-void` is a trimming
+defect, not a gluing one. A hand-written lookup returns nothing the first time an operator
+types an alias nobody added to it, and nothing is the most expensive answer on a production
+line.
+
+The floor also constrains where the model can run. Inspection lines arrive all shift, the
+machine that reads them sits on the plant network, and per-line calls to a hosted frontier
+model are neither fast enough nor cheap enough at that volume. A 0.6B student is small enough
+to run beside the line.
 
 ```
-IN:  [BINDERY-QA] defect=<panel-skew> severity=<major> :: lot L-12083 shift=swing units=807
+         ___     ___     ___     ___     ___     ___
+        |:::|   |:::|   |:::|   |:::|   |:::|   |:::|
+        |:::|   |:::|   |:::|   |:::|   |:::|   |:::|
+        |___|   |___|   |___|   |___|   |___|   |___|
+     ======================================================>
+                          ^
+                    .-----+-----.
+                    |  Q A  [*] |
+                    '-----------'
+       stn_qa defect=panel-skew sev=major lot=L-12083 units=807
+                          |
+                          v
+                     mark_and_pass
+```
+
+## The task in detail
+
+A worked job-input directory for a `classification` build — the only example of that task type
+in this repo. A base `Qwen3-0.6B` collapses to a single label and scores chance; the config
+distils it from `openai.gpt-oss-120b` on 512 synthetic examples.
+
+`base-input/` is the whole example. Submit it as a job input, unchanged. There is nothing to
+generate first and no input format to choose.
+
+One QA inspection line in, one disposition label out:
+
+```
+IN:  stn_qa defect=panel-skew sev=major lot=L-12083 op=RB shift=swing press=3 units=807
 OUT: mark_and_pass
 ```
 
@@ -37,8 +72,13 @@ not gluing; `foil-void` is `gathering`, not stamping; `board-slip` is `folding`,
 `head-nib` is `gluing`, `crossfold` is `casing`, `panel-skew` is `stamping`. Ten of the 50 test
 rows carry one.
 
-Inputs arrive in four formats (logfmt station line, bracketed QA line, free-text floor note,
-JSON line), and every line carries `lot`, `op`/`operator`, `press`, `shift` and `units` — all
+Every input is a single logfmt line, and no other format appears:
+
+```
+stn_qa defect=<alias> sev=<severity> lot=<lot> op=<initials> shift=<shift> press=<n> units=<n>
+```
+
+Only `defect` and `sev` decide the answer. `lot`, `op`, `shift`, `press` and `units` are all
 decorative. A unit count in the hundreds never escalates anything.
 
 ## Why a base model fails it
@@ -52,44 +92,22 @@ Three independent failure modes, which is what makes the gap robust:
    caps at **33/50 = 0.66** — that is the ceiling on guessing, computed over this test set, not a
    model score.
 3. **An invented label vocabulary.** `press_and_hold` versus `rework_signature` versus
-   `rebind_unit` is not a taxonomy anything has seen, so nothing anchors severity to a code. In
-   both measured runs the base model picked **one** label and applied it to all 50 rows
-   (`mark_and_pass` recall 1.0, every other class 0.0) — exactly chance on a 5-way balanced set.
+   `rebind_unit` is not a taxonomy anything has seen, so nothing anchors severity to a code. The
+   characteristic base-model failure is to pick **one** label and apply it to all 50 rows —
+   exactly chance on a 5-way balanced set.
 
 The test set is balanced 10 per class and over-samples exactly these cases: stamping at critical
 and major, gluing and casing at critical and major, and the contradictory aliases.
 
-## Results
+**Check the synthetic data before you train.** Classification labels are cheap to audit: re-derive
+every generated label from the rule table and count the disagreements. Also count rows whose input
+text names a station, which `synthetic_data_generation_instructions` forbids. That defect rate is
+the one worth watching if you adapt this.
 
-50-row test set, 10 per class, primary metric `accuracy`:
-
-| Model | accuracy | across runs |
-|---|---|---|
-| Base `Qwen3-0.6B` | 0.20 | 0.20, 0.20 |
-| **Tuned `Qwen3-0.6B`** | **1.00** | 1.00, 1.00 |
-| Teacher `openai.gpt-oss-120b` | 1.00 | 1.00, 1.00 |
-
-`closed = (1.00 - 0.20) / (1.00 - 0.20) = 1.00` → Deploy candidate
-— the whole base-to-teacher gap.
-
-The tuned student matches the teacher on every class: precision, recall and f1 all 1.0 with
-support 10, five classes out of five. Two independent full training runs over the same
-TrainingDataset gave identical numbers.
-
-**Expect variation.** Generation runs at non-zero temperature, so a rerun of this directory will
-not reproduce the dataset row-for-row — but classification is scored by exact label match rather
-than by a judge, so the score is less noisy than the QA examples' `llm-as-a-judge`. Both of my
-full runs landed on 1.00 and both base evaluations on 0.20. On 50 rows one row is 0.02.
-
-The synthetic data was clean enough to be worth recording: **0 label errors in 554 checkable
-rows** when re-derived against the rule table, 0 malformed rows, 0 labels outside
-`classes_description`, and class balance 110-112 per class. 3 rows in 555 (0.5%) named a station
-in the input text, which `synthetic_data_generation_instructions` forbids; that is the one defect
-rate worth watching if you adapt this.
-
-Timings, measured: teacher eval 1.1 min, synthgen 1.8 min, training 10.8 and 13.4 min across the
-two runs — about **15 minutes on the fast path**. Adding the prescribed smoke runs (synthgen
-smoke 1.5 min, training calibration smoke 7.3 min) takes it to about **24 minutes** of job time.
+**Expect variation between runs.** Generation runs at non-zero temperature, so two runs of this
+directory will not produce the dataset row-for-row. Classification is scored by exact label match
+rather than by a judge, so the score is less noisy than the `llm-as-a-judge` examples. On 50 rows
+one row is 0.02.
 
 ## Files
 
@@ -99,20 +117,24 @@ smoke 1.5 min, training calibration smoke 7.3 min) takes it to about **24 minute
 | `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, and `classes_description` for the 5 labels |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |
-| `generate_input.py` | regenerates all four files; the rule table is executable here, so the labels are auditable |
 
-The 24-cell mutator grid (6 stations × 4 severities) is wider than a 64-example smoke can
-populate — it filled 19 of 24 cells on the smoke and **24 of 24** on the full run — so read its
-coverage on the full run rather than the smoke.
+Four files, one directory, nothing to run first.
+
+The mutator grid has 24 cells (6 stations × 4 severities), which is wider than a 64-example smoke
+run can populate, so read its coverage on the full run rather than the smoke.
 
 Note there is no `llm_as_a_judge_instructions`: it is not valid for classification and the create
 fails with it. Classification is judged by label accuracy.
 
-## Three things to preserve if you adapt this
+## Five things to know if you adapt this
 
 **Keep the label set small and the rules closed.** Five labels over a 24-cell station × severity
 space is small enough for 0.6B; the catalog's default student is 4B and this works at 0.6B only
 because the whole rule system fits on one page.
+
+**Keep one input format.** Every line is `stn_qa`. A mixed-format input set makes the student
+spend capacity on parsing rather than on the alias table, and it leaves you unable to tell a
+parsing error apart from a rule error when you read the failures.
 
 **Keep the decoys, and keep them uncorrelated.** `units` in the hundreds appears on rows of every
 class. The moment a decoy correlates with the answer, the student learns the decoy and the gap
