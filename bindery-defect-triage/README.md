@@ -2,9 +2,13 @@
 
 ## What it does
 
-A defect triage service for the finishing floor of a book bindery. It reads one inspection line
-typed by a QA station and returns one disposition code: what happens to the affected units.
-Rebind them, rework the signature, press and hold, quarantine the lot, or mark and pass.
+A bindery is a factory that binds printed pages into finished books. The finishing floor is
+where that happens, and a quality station there types one inspection line for every batch it
+stops.
+
+This is the defect triage service that reads those lines. One inspection line goes in, and one
+disposition code comes out: what happens to the affected books. Rebind them, rework the
+signature, press and hold, quarantine the lot, or mark and pass.
 
 ## Why this needs a model
 

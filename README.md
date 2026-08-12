@@ -39,9 +39,10 @@ an alias table, an ordered rule table where first match wins, and one exception 
 overrides the obvious signal. The clearest illustration of a task a small model learns
 completely.
 
-**`bindery-defect-triage`** — one defect report in, one routing label out. Five classes, and a
-base model that scores exactly chance because it collapses to a single label. Shows what
-classification looks like when the label boundaries are genuinely unguessable.
+**`bindery-defect-triage`** — one defect report from a book bindery in, one routing label out. A
+bindery is a factory that binds printed pages into books. Five classes, and a base model that
+scores exactly chance because it collapses to a single label. Shows what classification looks
+like when the label boundaries are genuinely unguessable.
 
 **`trail-report-tagging`** — free-text trip reports in, a list of tag codes out, built from
 **production traces** rather than a curated dataset. It is shipped as an honest partial
