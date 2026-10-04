@@ -20,21 +20,50 @@ PROGRESS_EVERY = 50
 
 
 def read_requests(path, limit):
+    """Returns (messages, expected answer or None) per row."""
     requests = []
     with open(path) as source:
         for line in source:
             if not line.strip():
                 continue
             messages = json.loads(line)["messages"]
+            expected = None
             if messages and messages[-1]["role"] == "assistant":
+                expected = messages[-1].get("content")
                 messages = messages[:-1]
-            requests.append(messages)
+            requests.append((messages, expected))
             if limit and len(requests) >= limit:
                 break
     return requests
 
 
+def answer_text(response):
+    """The assistant text from a raw chat completion or from model_client's invoke()."""
+    if isinstance(response, str):
+        return response
+    if isinstance(response, dict):
+        return response.get("content")
+    if hasattr(response, "choices"):
+        return response.choices[0].message.content
+    return getattr(response, "content", None)
+
+
+def normalize(text):
+    if text is None:
+        return None
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
+def matches(answer, expected):
+    return expected is not None and normalize(answer) == normalize(expected)
+
+
 def load_client_class(client_path):
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location("model_client", client_path)
     module = importlib.util.module_from_spec(spec)
     sys.path.insert(0, str(Path(client_path).parent))
@@ -73,20 +102,28 @@ def make_sender(base_url, api_key, model, client_path):
 def main(base_url, api_key, model, input_path, limit, concurrency, client_path):
     requests = read_requests(input_path, limit)
     send = make_sender(base_url, api_key, model, client_path)
-    ok = failed = 0
+    ok = failed = matched = 0
+    labelled = sum(1 for _, expected in requests if expected is not None)
     last_error = None
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
-        futures = [pool.submit(with_key_retry, lambda m=m: send(m)) for m in requests]
+        futures = {
+            pool.submit(with_key_retry, lambda m=m: send(m)): expected
+            for m, expected in requests
+        }
         for done, future in enumerate(as_completed(futures), start=1):
             try:
-                future.result()
+                response = future.result()
                 ok += 1
+                if matches(answer_text(response), futures[future]):
+                    matched += 1
             except Exception as error:
                 failed += 1
                 last_error = error
             if done % PROGRESS_EVERY == 0:
                 print(f"{done} of {len(requests)} sent", flush=True)
     print(f"sent {len(requests)}, ok {ok}, failed {failed}")
+    if labelled:
+        print(f"matched {matched} of {labelled}")
     if last_error is not None:
         print(f"last error: {last_error}", file=sys.stderr)
     if requests and ok == 0:

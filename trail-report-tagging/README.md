@@ -46,7 +46,8 @@ expressed as `question-answering`. The onboarding runs it as the full loop:
 
 1. An inference endpoint with `openai/gpt-oss-120b` as its fallback stands in for the production
    service. `replay_traffic.py` sends it the 500 reports in `traces-input/traces.jsonl`: that file
-   is the production traffic.
+   is the production traffic. Each request carries the production system prompt, which is the
+   `task_description` in `job_description.json`, so the trained model serves the same requests.
 2. `distil inference-endpoint download-traces` fetches the records, and `records_to_traces.py`
    turns them into a trace file, uploaded with `traces-input/config.yaml` and
    `traces-input/job_description.json`.
