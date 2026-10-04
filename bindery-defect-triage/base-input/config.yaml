@@ -1,18 +1,14 @@
 base:
   task: classification
-  student_model_name: Qwen3-0.6B
-  teacher_model_name: openai.gpt-oss-120b
-  # Throughput only.
-  llm_num_parallel_requests: 64
+  student_model_name: Qwen3.5-0.8B
+  teacher_model_name: zai.glm-5.3-flash-low-thinking
+  llm_num_parallel_requests: 32
 
 evaluation:
-  # 5 classes, and configuration.md says classification uses at least one few-shot example
-  # per class, so the teacher sees one of each.
+  # 5 classes: the teacher sees one few-shot example per class.
   num_few_shot_examples: 5
 
 tuning:
-  # Batch 8 divides the optimizer-step count by 8, so the epochs rise with it (both shipped
-  # examples run 4 epochs at batch 8).
   num_train_epochs: 4
   per_device_train_batch_size: 8
   per_device_eval_batch_size: 8
@@ -20,20 +16,6 @@ tuning:
 synthgen:
   generation_target: 512
   generation_iteration_size: 128
-  # The disposition rules key off station and severity only, so the mutator grid forces
-  # exactly those two dimensions: every station is generated at every severity. Without this
-  # the teacher under-produces the combinations that make the exception rules visible
-  # (stamping at critical, gluing and casing at critical), and the student falls back to
-  # reading the severity word alone.
-  basic_mutators_to_use: []
-  mutation_topics:
-    - - defects reported from the folding station
-      - defects reported from the gathering station
-      - defects reported from the gluing station
-      - defects reported from the trimming station
-      - defects reported from the casing station
-      - defects reported from the stamping station
-    - - lines reported at critical severity
-      - lines reported at major severity
-      - lines reported at minor severity
-      - lines reported at trace severity
+  # No mutators. A station or severity mutator leads the teacher to the wrong label in this
+  # classification task; synthetic_data_generation_instructions spreads the rows over every
+  # alias and severity instead.
