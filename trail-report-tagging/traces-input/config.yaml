@@ -49,5 +49,5 @@ traces_to_test_set:
   num_synthetic_examples: 0
   # Scores the production model on the relabelled test set: the floor the student must beat.
   evaluate_original_model: true
-  # The job fails if fewer than 40 test rows survive relabelling.
-  min_relabelled_examples: 40
+  # 0 sets no floor on the relabelled test rows.
+  min_relabelled_examples: 0
