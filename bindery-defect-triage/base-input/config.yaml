@@ -14,7 +14,7 @@ tuning:
   per_device_eval_batch_size: 8
 
 synthgen:
-  generation_target: 512
+  train_generation_target: 512
   generation_iteration_size: 128
   # No mutators. A station or severity mutator leads the teacher to the wrong label in this
   # classification task; synthetic_data_generation_instructions spreads the rows over every
