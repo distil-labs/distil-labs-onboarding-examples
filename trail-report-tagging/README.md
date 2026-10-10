@@ -16,9 +16,9 @@ timber you climb over, light blowdown is timber you step over, and no tree count
 
 The question is therefore not whether to use a model but which one. There is already a
 production service doing this job, and it is wrong often enough to matter — it over-tags, it
-refuses to return an empty list, and it ignores the suppression rule. Its logged traffic is the
-input to this example: the traces go in, the teacher relabels them, and a 0.6B student is
-trained to replace the service that produced them.
+refuses to return an empty list, and it ignores the suppression rule. Its traffic is the input to
+this example: the traces go in, the teacher relabels them, and a 2B student is trained to replace
+the service that produced them.
 
 ```
                             /\
@@ -41,17 +41,25 @@ trained to replace the service that produced them.
 
 ## The task in detail
 
-A worked trace directory for a **traces-to-model** build: multi-label tagging expressed as
-`question-answering`. Where `incident-triage` starts from a labeled dataset, this one starts
-from production traces, so it exercises trace processing, teacher relabelling, and the
-original-model baseline that a traces build adds as an extra gate.
+A worked trace directory for a build that starts from production traffic: multi-label tagging
+expressed as `question-answering`. The onboarding runs it as the full loop:
 
-It is a **partial success, shipped as one**. Tuning lifts `Qwen3-0.6B` past the production
-model it replaces, but leaves it well short of the teacher. The reason is known and
-documented below.
+1. An inference endpoint with `openai/gpt-oss-120b` as its fallback stands in for the production
+   service. `replay_traffic.py` sends it the 500 reports in `traces-input/traces.jsonl`: that file
+   is the production traffic. Each request carries the production system prompt, which is the
+   `task_description` in `job_description.json`, so the trained model serves the same requests.
+2. `distil inference-endpoint download-traces` fetches the records, and `records_to_traces.py`
+   turns them into a trace file, uploaded with `traces-input/config.yaml` and
+   `traces-input/job_description.json`.
+3. `distil traces expand-test-set` relabels 200 traces into the test set and scores the
+   production model on it. That score is the floor the student must beat.
+4. Trace processing turns 200 of the remaining traces into the seed dataset, then teacher
+   evaluation, synthetic data generation (1000 rows) and training follow.
+5. The trained `Qwen3.5-2B` is deployed behind a new endpoint, with `openai/gpt-oss-120b` as
+   fallback, and the same traffic goes through it.
 
-`traces-input/` is the whole example. Submit it as a trace input, unchanged. There is nothing
-to generate first and no input format to choose.
+The test set is fixed once step 3 has built it, so every later score in the loop is read on the
+same rows. Relabelling keeps almost every trace.
 
 One free-text trail condition report in, one JSON list of applicable tag codes out:
 
@@ -108,47 +116,33 @@ Four independent failure modes, so the gap does not rest on any one rule:
 Format is *not* one of them: even the base model gets bare JSON out. That separation is
 useful — it says the fix is coverage per code, not prompt or format work.
 
-**This example varies more than the other two, and the reason is worth knowing.** Trace
-processing regenerates the test set on every run, so each run scores against different rows —
-unlike the other examples, which ship a fixed `test.jsonl`. The original-model baseline moves
-most of all, because it is measured on that regenerated set. Read the gap between the tuned
-model and the baseline *from the same run*; comparing either against a number from a different
-run is meaningless here.
-
-Relabelling loses well over half the traces to a platform-side malformed-request fault, so 500
-traces yield a small train split and a test split of a few dozen rows. The loss is random
-rather than biased: the survivors track the source tag-count distribution closely.
+**Expect variation between runs.** Relabelling, generation and judging all run at non-zero
+temperature, so two runs do not score the same to the decimal. Compare the student with the
+production model's score from the same test set.
 
 ## Files
 
 | File | Notes |
 |---|---|
-| `traces-input/traces.jsonl` | 500 traces, each one a trip report with the legacy service's answer |
-| `traces-input/job_description.json` | The 48-code taxonomy, the four rules, plus judge, synthgen and relabel instructions |
-| `traces-input/config.yaml` | `Qwen3-0.6B`, `gpt-oss-120b`, 1000 generated, 4 epochs, batch 8, `output_is_json`, a 6-topic mutator list |
-
-Three files, one directory, nothing to run first.
+| `traces-input/traces.jsonl` | 500 production calls: a trip report and the production service's answer. The onboarding replays these through an endpoint |
+| `traces-input/job_description.json` | The 48-code taxonomy, the four rules, plus judge, generation and relabelling instructions |
+| `traces-input/config.yaml` | `Qwen3.5-2B`, `zai.glm-5.3-low-thinking` as teacher, judge and relabelling teacher, 1000 generated, 4 epochs at batch 8, `output_is_json`, one `report_topic` mutator, a 200-row test set from traces |
 
 ## Five things to know if you adapt this
 
-**48 codes is too many for a 0.6B.** The headline lesson. Taxonomy size and a small student
-at a low epoch budget are in direct tension, and ~16 codes would be learnable at this budget.
-The platform's recommended default student is 4B-class, with 0.6B a cost-sensitive
-choice; this example is evidence for that advice.
+**48 codes need a larger student.** Taxonomy size and a small student at a low epoch budget are
+in direct tension: a 0.6B student lands well short of the teacher on this taxonomy, which is why
+this example trains a 2B one. The platform's recommended default student is 4B-class.
 
-**Epochs beat data by a wide margin.** Tripling the epochs on the same data lifted per-tag F1
-several times more than doubling the data at one epoch did. Invented codes are the tell —
-doubling the data made them worse, while tripling the epochs made them better and reduced the
-survivors to near-misses of real codes, such as `Cairn_MISSING`, which is the right code with
-the wrong casing. Repeated passes memorise a vocabulary; more single-pass examples do not.
+**Epochs beat data.** Repeated passes over the same data commit a vocabulary to memory, and more
+single-pass examples do not. Invented codes are the tell: more epochs reduce them to near-misses
+of real codes, such as `Cairn_MISSING`, the right code with the wrong casing.
 
-**Restate the override in `synthetic_data_generation_instructions`.** It is left at defaults
-here, and a measurable share of generated rows carrying an IMPASSABLE tag violate the override
-themselves. Override misses are then the one error class that stays flat across training runs
-while everything else improves. That is a data-quality ceiling no training lever clears, and it
-is the first thing to fix. It needs no re-processing: a `job_description` override on
-`POST /training-datasets/from-seed-datasets` reaches synthgen while leaving `task_description`
-untouched.
+**Check the override in the generated rows.** `synthetic_data_generation_instructions` restates
+the IMPASSABLE override, and the large teacher applies it. Count the generated rows that carry an
+IMPASSABLE tag and any other tag: override misses are a data-quality ceiling that no training
+setting clears. Fix them in the generation instructions, or correct the rows and upload the
+training data again.
 
 **Never give two tags phrasings built on the same word.** `AVALANCHE_DEBRIS` and
 `WASHOUT_MAJOR` were both given a phrasing using a bare "slide", which cost the teacher

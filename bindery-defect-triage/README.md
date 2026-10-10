@@ -21,7 +21,7 @@ line.
 
 The floor also constrains where the model can run. Inspection lines arrive all shift, the
 machine that reads them sits on the plant network, and per-line calls to a hosted frontier
-model are neither fast enough nor cheap enough at that volume. A 0.6B student is small enough
+model are neither fast enough nor cheap enough at that volume. A 0.8B student is small enough
 to run beside the line.
 
 ```
@@ -42,12 +42,12 @@ to run beside the line.
 
 ## The task in detail
 
-A worked job-input directory for a `classification` build — the only example of that task type
-in this repo. A base `Qwen3-0.6B` collapses to a single label and scores chance; the config
-distils it from `openai.gpt-oss-120b` on 512 synthetic examples.
+A worked job-input directory for a `classification` build, the only example of that task type
+in this repo. An untrained `Qwen3.5-0.8B` fails the task; the config distils it from
+`zai.glm-5.3-flash-low-thinking` on 512 synthetic examples.
 
-`base-input/` is the whole example. Submit it as a job input, unchanged. There is nothing to
-generate first and no input format to choose.
+`base-input/` is the whole example. Create the seed dataset from it unchanged. There is nothing
+to generate first and no input format to choose.
 
 One QA inspection line in, one disposition label out:
 
@@ -108,6 +108,10 @@ every generated label from the rule table and count the disagreements. Also coun
 text names a station, which `synthetic_data_generation_instructions` forbids. That defect rate is
 the one worth watching if you adapt this.
 
+**No mutators.** A station or severity mutator leads the teacher to the wrong label in this task.
+`synthetic_data_generation_instructions` names every alias and severity and restates rules 1 and 2
+instead, which spreads the rows evenly and keeps the labels right.
+
 **Expect variation between runs.** Generation runs at non-zero temperature, so two runs of this
 directory will not produce the dataset row-for-row. Classification is scored by exact label match
 rather than by a judge, so the score is less noisy than the `llm-as-a-judge` examples. On 50 rows
@@ -117,15 +121,12 @@ one row is 0.02.
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3-0.6B`, `gpt-oss-120b`, 512 generated, 4 epochs at batch 8, a station × severity mutator grid, `num_few_shot_examples: 5` |
-| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, and `classes_description` for the 5 labels |
+| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 4 epochs at batch 8, no mutators, `num_few_shot_examples: 5` |
+| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, `classes_description` for the 5 labels, and generation instructions that name every alias |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |
 
 Four files, one directory, nothing to run first.
-
-The mutator grid has 24 cells (6 stations × 4 severities), which is wider than a 64-example smoke
-run can populate, so read its coverage on the full run rather than the smoke.
 
 Note there is no `llm_as_a_judge_instructions`: it is not valid for classification and the create
 fails with it. Classification is judged by label accuracy.
@@ -133,7 +134,7 @@ fails with it. Classification is judged by label accuracy.
 ## Five things to know if you adapt this
 
 **Keep the label set small and the rules closed.** Five labels over a 24-cell station × severity
-space is small enough for 0.6B; the catalog's default student is 4B and this works at 0.6B only
+space is small enough for 0.8B; the catalog's default student is 4B, and this works at 0.8B
 because the whole rule system fits on one page.
 
 **Keep one input format.** Every line is `stn_qa`. A mixed-format input set makes the student
@@ -145,7 +146,7 @@ class. The moment a decoy correlates with the answer, the student learns the dec
 you measured stops meaning what you think it means.
 
 **Do not add arithmetic.** The same lesson as `incident-triage`: this task deliberately has no
-numeric threshold. The exception rules are pure lookups, and that is what a 0.6B student can hold
+numeric threshold. The exception rules are pure lookups, and that is what a 0.8B student can hold
 alongside a 30-entry alias table.
 
 **Balance the test set by class, not by cell.** Uniform sampling over the 24 station × severity
