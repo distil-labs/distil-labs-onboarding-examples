@@ -16,7 +16,7 @@ tuning:
   per_device_eval_batch_size: 8
 
 synthgen:
-  generation_target: 1000
+  train_generation_target: 1000
   generation_iteration_size: 128
   output_is_json: true
   # The answers are JSON inside JSON, so the teacher runs at the bottom of the range for a
@@ -38,16 +38,10 @@ synthgen:
 trace_processing:
   teacher_model_name: zai.glm-5.3-low-thinking
   observation_format: openai_messages
-  # 500 traces: the test set takes 200, which leaves 300 for these 200 and the unstructured rows.
-  num_traces_as_training_base: 200
+  # 500 traces: 200 are relabelled into the test set, 200 into the train set, and the 100 that
+  # remain are context for synthetic data generation.
+  num_test_relabelled: 200
+  num_train_relabelled: 200
   relabel: true
   # Every trace is on-task by construction, so a relevance filter can only drop valid rows.
   relevance_filtering: false
-
-traces_to_test_set:
-  num_traces_to_relabel: 200
-  num_synthetic_examples: 0
-  # Scores the production model on the relabelled test set: the floor the student must beat.
-  evaluate_original_model: true
-  # 0 sets no floor on the relabelled test rows.
-  min_relabelled_examples: 0

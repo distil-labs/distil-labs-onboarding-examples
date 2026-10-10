@@ -49,12 +49,14 @@ expressed as `question-answering`. The onboarding runs it as the full loop:
    is the production traffic. Each request carries the production system prompt, which is the
    `task_description` in `job_description.json`, so the trained model serves the same requests.
 2. `distil inference-endpoint download-traces` fetches the records, and `records_to_traces.py`
-   turns them into a trace file, uploaded with `traces-input/config.yaml` and
-   `traces-input/job_description.json`.
-3. `distil traces expand-test-set` relabels 200 traces into the test set and scores the
-   production model on it. That score is the floor the student must beat.
-4. Trace processing turns 200 of the remaining traces into the seed dataset, then teacher
-   evaluation, synthetic data generation (1000 rows) and training follow.
+   turns them into a trace file, uploaded as a traces object; `distil dataset create-from-traces`
+   makes it a dataset with `traces-input/config.yaml` and `traces-input/job_description.json`.
+3. `distil dataset relabel-traces-test` relabels 200 traces into the test set. A teacher
+   evaluation with the production model as the teacher scores it on that test set; that score is
+   the floor the student must beat.
+4. `distil dataset relabel-traces-train` turns 200 of the remaining traces into training rows,
+   then `distil dataset generate-synthetic-data-train` adds 1000 synthetic rows with the 100
+   traces left as context, and training follows.
 5. The trained `Qwen3.5-2B` is deployed behind a new endpoint, with `openai/gpt-oss-120b` as
    fallback, and the same traffic goes through it.
 

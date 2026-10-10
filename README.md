@@ -21,13 +21,8 @@ than any setting.
 
 | Example | Task type | Starts from | Teacher | Student |
 |---|---|---|---|---|
-<<<<<<< HEAD
 | [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
 | [`incident-triage`](incident-triage/) | `question-answering` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
-=======
-| [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3.5-0.8B` |
-| [`incident-triage`](incident-triage/) | `question-answering` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
->>>>>>> origin/short-incident-triage
 | [`trail-report-tagging`](trail-report-tagging/) | `question-answering` | production traffic, `traces-input/` | `zai.glm-5.3-low-thinking` | `Qwen3.5-2B` |
 
 The settings trade a little accuracy for speed: the teachers and students are the fastest ones
