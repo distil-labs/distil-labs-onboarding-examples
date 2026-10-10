@@ -13,7 +13,7 @@ tuning:
   per_device_eval_batch_size: 8
 
 synthgen:
-  generation_target: 512
+  train_generation_target: 512
   generation_iteration_size: 128
   output_is_json: true
   # The severity rules key off component and level only, so these two mutators generate every
