@@ -1,6 +1,8 @@
 base:
   task: question-answering
-  student_model_name: Qwen3.5-2B
+  # 16 codes: a 0.6B student learns them in 2 epochs, and it starts and serves faster than a
+  # larger one.
+  student_model_name: Qwen3-0.6B
   # The large teacher: the IMPASSABLE override is a rule the small one breaks in relabelling
   # and generation.
   teacher_model_name: zai.glm-5.3-low-thinking
@@ -10,8 +12,6 @@ evaluation:
   llm_as_a_judge_model_name: zai.glm-5.3-low-thinking
 
 tuning:
-  # 2 epochs at most. A batch of 4 and 4x the default learning rate give the optimizer enough
-  # steps to commit a 48-code vocabulary to memory in those 2 passes.
   num_train_epochs: 2
   learning_rate: 0.0002
   per_device_train_batch_size: 4
@@ -24,32 +24,28 @@ synthgen:
   # The answers are JSON inside JSON, so the teacher runs at the bottom of the range for a
   # reasoning teacher (0.5-0.7) to keep the escaping correct.
   teacher_temperature: 0.5
-  # One dimension: the tag families and the two rule cases that carry the gap to the base
-  # model, the IMPASSABLE override and the empty tag list. Read the coverage in the output:
-  # a mutator value is a request and can produce nothing.
   mutators:
     - name: report_topic
       values:
         - "reports where the trail is blocked outright and other conditions are also described"
         - "reports where the trail is in good order and nothing is reportable"
-        - "reports about degraded trail structures, signage and route marking"
-        - "reports about seasonal snow, ice, water and mud conditions"
-        - "reports about camps, bugs, crowding and trailhead conditions"
+        - "reports about blowdown, drainage and signage"
+        - "reports about snow and water conditions"
+        - "reports about bugs, water carries, camps and trailhead parking"
         - "reports that turn on a close-neighbour tag distinction"
 
 trace_processing:
   teacher_model_name: zai.glm-5.3-low-thinking
   observation_format: openai_messages
-  # 500 traces: the test set takes 100, which leaves 400 for these 350 and 50 unstructured rows.
-  # The relabelled traces are the rows that carry the most: the test reports are written in the
-  # same phrasings, and the generated rows are not.
-  num_traces_as_training_base: 350
+  # 200 traces: the test set takes 50, and 140 of the other 150 become the training rows. The
+  # 10 spare traces cover records that the download misses or that failed.
+  num_traces_as_training_base: 140
   relabel: true
   # Every trace is on-task by construction, so a relevance filter can only drop valid rows.
   relevance_filtering: false
 
 traces_to_test_set:
-  num_traces_to_relabel: 100
+  num_traces_to_relabel: 50
   num_synthetic_examples: 0
   # Scores the production model on the relabelled test set: the floor the student must beat.
   evaluate_original_model: true

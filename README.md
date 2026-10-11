@@ -23,10 +23,10 @@ than any setting.
 |---|---|---|---|---|
 | [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3.5-0.8B` |
 | [`incident-triage`](incident-triage/) | `question-answering` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3.5-0.8B` |
-| [`trail-report-tagging`](trail-report-tagging/) | `question-answering` | production traffic, `traces-input/` | `zai.glm-5.3-low-thinking` | `Qwen3.5-2B` |
+| [`trail-report-tagging`](trail-report-tagging/) | `question-answering` | production traffic, `traces-input/` | `zai.glm-5.3-low-thinking` | `Qwen3-0.6B` |
 
 The settings trade a little accuracy for speed: the teachers and students are the fastest ones
-that solve each task, and every job runs with 32 parallel LLM requests and a training batch of 8.
+that solve each task, and every job runs with 32 parallel LLM requests and a training batch of 8 (4 for `trail-report-tagging`).
 
 ## How the examples run
 
@@ -35,8 +35,8 @@ that solve each task, and every job runs with 32 parallel LLM requests and a tra
   behind an inference endpoint.
 - **`trail-report-tagging`:** the full loop. An inference endpoint with `openai/gpt-oss-120b` as
   its fallback receives the production traffic in `traces-input/traces.jsonl`. Its records become
-  the traces, a test set and a seed dataset are built from them, and the trained model goes
-  behind a new endpoint that serves the same traffic.
+  the traces, the teacher relabels them into a test set and a training set, and the trained model
+  goes behind a new endpoint that serves the same traffic.
 
 ## Scripts
 
