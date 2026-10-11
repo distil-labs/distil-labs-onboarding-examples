@@ -16,7 +16,7 @@ that breaks every time a team renames a service or rewords a message, and it bre
 A frontier model reads these lines correctly first time, but it is the wrong thing to run in
 this position. Alerts arrive continuously, each line needs an answer in milliseconds, and the
 per-call cost is paid thousands of times an hour, forever. This example moves that ability into
-a 0.8B student: small enough to sit inside the alerting path, cheap enough to run on every line.
+a 0.6B student: small enough to sit inside the alerting path, cheap enough to run on every line.
 
 ```
     2026-08-05T14:22:11Z WARN auth-svc msg="token refresh failed" count=847
@@ -35,8 +35,8 @@ a 0.8B student: small enough to sit inside the alerting path, cheap enough to ru
 
 ## The task in detail
 
-A worked job-input directory for a `question-answering` build. An untrained `Qwen3.5-0.8B`
-fails the task; the config distils it from `zai.glm-5.3-flash-low-thinking` on 512 synthetic
+A worked job-input directory for a `question-answering` build. An untrained `Qwen3-0.6B`
+fails the task; the config distils it from `zai.glm-5.3-flash-low-thinking` on about 250 synthetic
 examples.
 
 `base-input/` is the whole example. Create the seed dataset from it unchanged. There is nothing
@@ -95,7 +95,7 @@ so a 0.04 difference is two rows and inside the noise.
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking` as teacher and judge, 512 generated, 2 epochs at batch 8, `output_is_json`, `component` and `level` mutators |
+| `base-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-flash-low-thinking` as teacher and judge, one batch of 256 generated (target 200), 2 epochs at batch 8, `output_is_json`, `component` and `level` mutators |
 | `base-input/job_description.json` | the rule table, the input spec, and the judge criteria |
 | `base-input/train.jsonl` | 20 seed rows |
 | `base-input/test.jsonl` | 50 test rows |
@@ -104,7 +104,7 @@ Four files, one directory, nothing to run first.
 
 ## Three things to know if you adapt this
 
-**Keep the task narrow.** The catalog's default student is 4B; 0.8B works here because this is
+**Keep the task narrow.** The catalog's default student is 4B; 0.6B works here because this is
 a small closed rule system.
 
 **Keep one input format.** A mixed-format input set makes the student spend capacity on
