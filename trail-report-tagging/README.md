@@ -15,10 +15,9 @@ own words uses neither phrasing twice. Every threshold is qualitative as well: h
 timber you climb over, light blowdown is timber you step over, and no tree count decides it.
 
 The question is therefore not whether to use a model but which one. There is already a
-production service doing this job, and it is wrong often enough to matter — it over-tags, it
-refuses to return an empty list, and it ignores the suppression rule. Its traffic is the input to
-this example: the traces go in, the teacher relabels them, and a 2B student is trained to replace
-the service that produced them.
+production service doing this job with a large general model, and it is slow and expensive for
+a task this narrow. Its traffic is the input to this example: the traces go in, the teacher
+relabels them, and a 0.6B student is trained to replace the service that produced them.
 
 ```
                             /\
@@ -45,19 +44,19 @@ A worked trace directory for a build that starts from production traffic: multi-
 expressed as `question-answering`. The onboarding runs it as the full loop:
 
 1. An inference endpoint with `openai/gpt-oss-120b` as its fallback stands in for the production
-   service. `replay_traffic.py` sends it the 500 reports in `traces-input/traces.jsonl`: that file
+   service. `replay_traffic.py` sends it the 200 reports in `traces-input/traces.jsonl`: that file
    is the production traffic. Each request carries the production system prompt, which is the
    `task_description` in `job_description.json`, so the trained model serves the same requests.
 2. `distil inference-endpoint download-traces` fetches the records, and `records_to_traces.py`
-   turns them into a trace file, uploaded as a traces object; `distil dataset create-from-traces`
-   makes it a dataset with `traces-input/config.yaml` and `traces-input/job_description.json`.
-3. `distil dataset relabel-traces-test` relabels 200 traces into the test set. A teacher
-   evaluation with the production model as the teacher scores it on that test set; that score is
-   the floor the student must beat.
-4. `distil dataset relabel-traces-train` turns 200 of the remaining traces into training rows,
-   then `distil dataset generate-synthetic-data-train` adds 1000 synthetic rows with the 100
-   traces left as context, and training follows.
-5. The trained `Qwen3.5-2B` is deployed behind a new endpoint, with `openai/gpt-oss-120b` as
+   turns them into a trace file, uploaded with `traces-input/config.yaml` and
+   `traces-input/job_description.json`.
+3. `distil dataset relabel-traces-test` relabels 50 traces into the test set and scores the
+   production model on it. That score is the mark the student is compared with.
+4. `distil dataset relabel-traces-train` relabels 140 of the remaining traces into the training
+   rows, and training follows. The teacher evaluation runs alongside. The trace path runs no
+   synthetic data generation: the relabelled traces are written in the same phrasings as the
+   test reports, and they are what the score rests on.
+5. The trained `Qwen3-0.6B` is deployed behind a new endpoint, with `openai/gpt-oss-120b` as
    fallback, and the same traffic goes through it.
 
 The test set is fixed once step 3 has built it, so every later score in the loop is read on the
@@ -72,16 +71,17 @@ IN:  Trip report, 2026-July 19. We covered 8.4 miles out and back. Mosquitoes we
 OUT: {"tags": ["BRIDGE_OUT"]}
 ```
 
-All 48 codes and their definitions live in `task_description`, so teacher, base student and
+All 16 codes and their definitions live in `task_description`, so teacher, base student and
 tuned student see identical information:
 
 | Step | Rule |
 |---|---|
-| Vocabulary | 48 codes across 4 families — `IMPASSABLE` (8), `OBSTRUCTION` (14), `SEASONAL` (14), `COMFORT` (12) — verbatim only |
+| Vocabulary | 16 codes across 4 families — `IMPASSABLE`, `OBSTRUCTION`, `SEASONAL`, `COMFORT`, 4 each — verbatim only |
 | Definitions | Near-neighbours split **only** by definition, never by surface words |
 | → `WATER_LOW` | sources are dry, **not** a creek running low |
 | → `WATER_CARRY_LONG` | sources are far apart, **not** dry |
 | → `RUNOFF_ON_TREAD` | water on the trail, no structure at fault |
+| → `SNOW_PATCH` | snow you can walk around, **not** continuous cover |
 | → `DRAIN_BLOCKED` | a failed drainage structure |
 | **The override** | any `IMPASSABLE` tag → the answer is **only** the `IMPASSABLE` tags |
 | Empty set | nothing applies → `{"tags": []}` |
@@ -107,9 +107,8 @@ Every threshold is qualitative: `BLOWDOWN_HEAVY` is "climbed over" against
 
 Four independent failure modes, so the gap does not rest on any one rule:
 
-1. **A vocabulary it cannot recall.** 48 arbitrary codes in the prompt. The base model
-   invents codes that do not exist — `SNOW_LOAD`, `STILE_JAMMED`, `GULLYING`,
-   `WILDFLOWERS_PEEVING`. The teacher does this zero times.
+1. **A vocabulary it cannot recall.** 16 arbitrary codes in the prompt. A small base model
+   invents codes that do not exist. The teacher does this zero times.
 2. **Over-tagging.** The characteristic multi-label failure, and it worsens as the
    vocabulary grows.
 3. **The override.** Small models list everything they noticed instead of suppressing.
@@ -126,31 +125,32 @@ production model's score from the same test set.
 
 | File | Notes |
 |---|---|
-| `traces-input/traces.jsonl` | 500 production calls: a trip report and the production service's answer. The onboarding replays these through an endpoint |
-| `traces-input/job_description.json` | The 48-code taxonomy, the four rules, plus judge, generation and relabelling instructions |
-| `traces-input/config.yaml` | `Qwen3.5-2B`, `zai.glm-5.3-low-thinking` as teacher, judge and relabelling teacher, 1000 generated, 2 epochs at batch 8, `output_is_json`, one `report_topic` mutator, a 200-row test set from traces |
+| `traces-input/traces.jsonl` | 200 production calls: a trip report and the production service's answer. The onboarding replays these through an endpoint |
+| `traces-input/job_description.json` | The 16-code taxonomy, the four rules, plus judge, generation and relabelling instructions |
+| `traces-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-low-thinking` as teacher, judge and relabelling teacher, a 50-row test set and 140 training rows from traces, 2 epochs at batch 4 and learning rate 2e-4, `output_is_json`. The `synthgen` section is for a later generation run on the final dataset; the trace path does not run one |
 
 ## Five things to know if you adapt this
 
-**48 codes need a larger student.** Taxonomy size and a small student at a low epoch budget are
-in direct tension: a 0.6B student lands well short of the teacher on this taxonomy, which is why
-this example trains a 2B one. The platform's recommended default student is 4B-class.
+**Taxonomy size sets the student size.** This example once had 48 codes. At 2 epochs a 2B
+student reached the production model's score on them only when it trained on 350 relabelled
+traces; a 0.6B student lands well short. With 16 codes a 0.6B student learns them in 2 epochs.
+The platform's recommended default student is 4B-class.
 
-**Epochs beat data.** Repeated passes over the same data commit a vocabulary to memory, and more
-single-pass examples do not. Invented codes are the tell: more epochs reduce them to near-misses
-of real codes, such as `Cairn_MISSING`, the right code with the wrong casing.
+**Relabelled traces beat generated rows.** The reports are written in a fixed set of phrasings,
+and the test reports reuse them. Generated rows use new phrasings, so they add little to the
+test score: on the 48-code version, 200 relabelled traces plus 600 to 1000 generated rows scored
+0.88 to 0.89, and 350 relabelled traces plus 250 generated rows scored 0.95.
 
-**Check the override in the generated rows.** `synthetic_data_generation_instructions` restates
-the IMPASSABLE override, and the large teacher applies it. Count the generated rows that carry an
-IMPASSABLE tag and any other tag: override misses are a data-quality ceiling that no training
-setting clears. Fix them in the generation instructions, or correct the rows and upload the
-training data again.
+**Check the override in the training rows.** `trace_processing_instructions` and
+`synthetic_data_generation_instructions` both restate the IMPASSABLE override, and the large
+teacher applies it. Count the training rows that carry an IMPASSABLE tag and any other tag:
+override misses are a data-quality ceiling that no training setting clears.
 
-**Never give two tags phrasings built on the same word.** `AVALANCHE_DEBRIS` and
-`WASHOUT_MAJOR` were both given a phrasing using a bare "slide", which cost the teacher
+**Never give two tags phrasings built on the same word.** In the 48-code version,
+`AVALANCHE_DEBRIS` and `WASHOUT_MAJOR` were both given a phrasing using a bare "slide", which cost the teacher
 several rows and therefore lowered the ceiling everything else distills from. Say "avalanche"
 and "landslide" explicitly.
 
 **Keep one input register.** Every report is a first-person trip report. Mixing registers
-spreads a fixed generation budget across formats instead of across the 48 codes, and code
-coverage is the binding constraint here.
+spreads a fixed budget of rows across formats instead of across the codes, and code coverage
+is the binding constraint here.

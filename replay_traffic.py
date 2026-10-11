@@ -15,6 +15,8 @@ from pathlib import Path
 from openai import APIStatusError, OpenAI
 
 KEY_PROPAGATION_SECONDS = 60
+REQUEST_TIMEOUT_SECONDS = 60
+MAX_RETRIES = 2
 RETRY_INTERVAL_SECONDS = 5
 PROGRESS_EVERY = 50
 
@@ -91,7 +93,9 @@ def make_sender(base_url, api_key, model, client_path):
 
         return send
 
-    client = OpenAI(base_url=base_url, api_key=api_key)
+    client = OpenAI(
+        base_url=base_url, api_key=api_key, timeout=REQUEST_TIMEOUT_SECONDS, max_retries=MAX_RETRIES
+    )
 
     def send(messages):
         return client.chat.completions.create(model=model, messages=messages, temperature=0)

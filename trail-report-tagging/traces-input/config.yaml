@@ -1,6 +1,8 @@
 base:
   task: question-answering
-  student_model_name: Qwen3.5-2B
+  # 16 codes: a 0.6B student learns them in 2 epochs, and it starts and serves faster than a
+  # larger one.
+  student_model_name: Qwen3-0.6B
   # The large teacher: the IMPASSABLE override is a rule the small one breaks in relabelling
   # and generation.
   teacher_model_name: zai.glm-5.3-low-thinking
@@ -10,38 +12,37 @@ evaluation:
   llm_as_a_judge_model_name: zai.glm-5.3-low-thinking
 
 tuning:
-  # Repeated passes are what commit a 48-code vocabulary to memory.
   num_train_epochs: 2
-  per_device_train_batch_size: 8
+  learning_rate: 0.0002
+  per_device_train_batch_size: 4
   per_device_eval_batch_size: 8
 
 synthgen:
-  train_generation_target: 1000
+  train_generation_target: 128
+  test_generation_target: 0
   generation_iteration_size: 128
   output_is_json: true
   # The answers are JSON inside JSON, so the teacher runs at the bottom of the range for a
   # reasoning teacher (0.5-0.7) to keep the escaping correct.
   teacher_temperature: 0.5
-  # One dimension: the tag families and the two rule cases that carry the gap to the base
-  # model, the IMPASSABLE override and the empty tag list. Read the coverage in the output:
-  # a mutator value is a request and can produce nothing.
   mutators:
     - name: report_topic
       values:
         - "reports where the trail is blocked outright and other conditions are also described"
         - "reports where the trail is in good order and nothing is reportable"
-        - "reports about degraded trail structures, signage and route marking"
-        - "reports about seasonal snow, ice, water and mud conditions"
-        - "reports about camps, bugs, crowding and trailhead conditions"
+        - "reports about blowdown, drainage and signage"
+        - "reports about snow and water conditions"
+        - "reports about bugs, water carries, camps and trailhead parking"
         - "reports that turn on a close-neighbour tag distinction"
 
 trace_processing:
   teacher_model_name: zai.glm-5.3-low-thinking
   observation_format: openai_messages
-  # 500 traces: 200 are relabelled into the test set, 200 into the train set, and the 100 that
-  # remain are context for synthetic data generation.
-  num_test_relabelled: 200
-  num_train_relabelled: 200
+  # 200 traces: the test set takes 50, and 140 of the other 150 become the training rows. The
+  # 10 spare traces cover records that the download misses or that failed.
+  num_test_relabelled: 50
+  num_train_relabelled: 140
   relabel: true
   # Every trace is on-task by construction, so a relevance filter can only drop valid rows.
   relevance_filtering: false
+
