@@ -11,7 +11,7 @@ evaluation:
 
 tuning:
   # Repeated passes are what commit a 48-code vocabulary to memory.
-  num_train_epochs: 4
+  num_train_epochs: 2
   per_device_train_batch_size: 8
   per_device_eval_batch_size: 8
 
