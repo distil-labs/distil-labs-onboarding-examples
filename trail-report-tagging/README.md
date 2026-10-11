@@ -126,7 +126,7 @@ production model's score from the same test set.
 |---|---|
 | `traces-input/traces.jsonl` | 500 production calls: a trip report and the production service's answer. The onboarding replays these through an endpoint |
 | `traces-input/job_description.json` | The 48-code taxonomy, the four rules, plus judge, generation and relabelling instructions |
-| `traces-input/config.yaml` | `Qwen3.5-2B`, `zai.glm-5.3-low-thinking` as teacher, judge and relabelling teacher, 1000 generated, 4 epochs at batch 8, `output_is_json`, one `report_topic` mutator, a 200-row test set from traces |
+| `traces-input/config.yaml` | `Qwen3.5-2B`, `zai.glm-5.3-low-thinking` as teacher, judge and relabelling teacher, 1000 generated, 2 epochs at batch 8, `output_is_json`, one `report_topic` mutator, a 200-row test set from traces |
 
 ## Five things to know if you adapt this
 

@@ -121,7 +121,7 @@ one row is 0.02.
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 4 epochs at batch 8, no mutators, `num_few_shot_examples: 5` |
+| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 2 epochs at batch 8, no mutators, `num_few_shot_examples: 5` |
 | `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, `classes_description` for the 5 labels, and generation instructions that name every alias |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |

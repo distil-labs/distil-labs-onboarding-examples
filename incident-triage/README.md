@@ -95,7 +95,7 @@ so a 0.04 difference is two rows and inside the noise.
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking` as teacher and judge, 512 generated, 4 epochs at batch 8, `output_is_json`, `component` and `level` mutators |
+| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking` as teacher and judge, 512 generated, 2 epochs at batch 8, `output_is_json`, `component` and `level` mutators |
 | `base-input/job_description.json` | the rule table, the input spec, and the judge criteria |
 | `base-input/train.jsonl` | 20 seed rows |
 | `base-input/test.jsonl` | 50 test rows |
