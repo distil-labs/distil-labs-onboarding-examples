@@ -10,13 +10,15 @@ evaluation:
   llm_as_a_judge_model_name: zai.glm-5.3-low-thinking
 
 tuning:
-  # Repeated passes are what commit a 48-code vocabulary to memory.
+  # At 2 epochs, a learning rate 4x the default does what 4 epochs at the default did: it
+  # commits a 48-code vocabulary to memory.
   num_train_epochs: 2
+  learning_rate: 0.0002
   per_device_train_batch_size: 8
   per_device_eval_batch_size: 8
 
 synthgen:
-  generation_target: 1000
+  generation_target: 500
   generation_iteration_size: 128
   output_is_json: true
   # The answers are JSON inside JSON, so the teacher runs at the bottom of the range for a
@@ -38,14 +40,14 @@ synthgen:
 trace_processing:
   teacher_model_name: zai.glm-5.3-low-thinking
   observation_format: openai_messages
-  # 500 traces: the test set takes 200, which leaves 300 for these 200 and the unstructured rows.
+  # 350 traces: the test set takes 100, which leaves 250 for these 200 and the unstructured rows.
   num_traces_as_training_base: 200
   relabel: true
   # Every trace is on-task by construction, so a relevance filter can only drop valid rows.
   relevance_filtering: false
 
 traces_to_test_set:
-  num_traces_to_relabel: 200
+  num_traces_to_relabel: 100
   num_synthetic_examples: 0
   # Scores the production model on the relabelled test set: the floor the student must beat.
   evaluate_original_model: true
