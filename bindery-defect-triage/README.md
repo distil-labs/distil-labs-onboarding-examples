@@ -21,7 +21,7 @@ line.
 
 The floor also constrains where the model can run. Inspection lines arrive all shift, the
 machine that reads them sits on the plant network, and per-line calls to a hosted frontier
-model are neither fast enough nor cheap enough at that volume. A 0.8B student is small enough
+model are neither fast enough nor cheap enough at that volume. A 0.6B student is small enough
 to run beside the line.
 
 ```
@@ -43,7 +43,7 @@ to run beside the line.
 ## The task in detail
 
 A worked job-input directory for a `classification` build, the only example of that task type
-in this repo. An untrained `Qwen3.5-0.8B` fails the task; the config distils it from
+in this repo. An untrained `Qwen3-0.6B` fails the task; the config distils it from
 `zai.glm-5.3-flash-low-thinking` on 512 synthetic examples.
 
 `base-input/` is the whole example. Create the seed dataset from it unchanged. There is nothing
@@ -121,7 +121,7 @@ one row is 0.02.
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3.5-0.8B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 4 epochs at batch 8, no mutators, `num_few_shot_examples: 5` |
+| `base-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 1 epoch at batch 8, no mutators, `num_few_shot_examples: 5` |
 | `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, `classes_description` for the 5 labels, and generation instructions that name every alias |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |
@@ -134,7 +134,7 @@ fails with it. Classification is judged by label accuracy.
 ## Five things to know if you adapt this
 
 **Keep the label set small and the rules closed.** Five labels over a 24-cell station × severity
-space is small enough for 0.8B; the catalog's default student is 4B, and this works at 0.8B
+space is small enough for 0.6B; the catalog's default student is 4B, and this works at 0.6B
 because the whole rule system fits on one page.
 
 **Keep one input format.** Every line is `stn_qa`. A mixed-format input set makes the student
@@ -146,7 +146,7 @@ class. The moment a decoy correlates with the answer, the student learns the dec
 you measured stops meaning what you think it means.
 
 **Do not add arithmetic.** The same lesson as `incident-triage`: this task deliberately has no
-numeric threshold. The exception rules are pure lookups, and that is what a 0.8B student can hold
+numeric threshold. The exception rules are pure lookups, and that is what a 0.6B student can hold
 alongside a 30-entry alias table.
 
 **Balance the test set by class, not by cell.** Uniform sampling over the 24 station × severity
