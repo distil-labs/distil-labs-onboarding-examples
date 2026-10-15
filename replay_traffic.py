@@ -64,13 +64,17 @@ def matches(answer, expected):
     return expected is not None and normalize(answer) == normalize(expected)
 
 
-def load_client_class(client_path):
+def load_client_module(client_path):
     sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location("model_client", client_path)
     module = importlib.util.module_from_spec(spec)
     sys.path.insert(0, str(Path(client_path).parent))
     spec.loader.exec_module(module)
-    return module.DistilLabsLLM
+    return module
+
+
+def starts_with_system_message(messages):
+    return bool(messages) and messages[0]["role"] == "system"
 
 
 def with_key_retry(call):
@@ -86,10 +90,22 @@ def with_key_retry(call):
 
 def make_sender(base_url, api_key, model, client_path):
     if client_path:
-        client = load_client_class(client_path)(model, base_url, api_key)
+        client_module = load_client_module(client_path)
+        client = client_module.DistilLabsLLM(model, base_url, api_key)
+
+        if hasattr(client_module, "SYSTEM_PROMPT"):
+
+            def send(messages):
+                return client.invoke([m for m in messages if m["role"] != "system"])
+
+            return send
+
+        trained_system_message = client_module.DEFAULT_CONVERSATION[0]
 
         def send(messages):
-            return client.invoke([m for m in messages if m["role"] != "system"])
+            if not starts_with_system_message(messages):
+                messages = [trained_system_message] + messages
+            return client.invoke(messages)
 
         return send
 
