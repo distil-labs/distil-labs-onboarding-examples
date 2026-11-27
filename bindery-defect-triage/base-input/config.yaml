@@ -18,7 +18,7 @@ synthgen:
   generation_iteration_size: 128
   # One value per code, each naming the station and severity that lead to it, so the value
   # fixes the answer. No station or severity mutator: those lead the teacher to the wrong
-  # label. synthetic_data_generation_instructions spreads the rows over every alias instead.
+  # label. synthetic_data_generation_instructions restates rules 1 and 2 instead.
   mutators:
     - name: label
       description: which disposition code the inspection line resolves to

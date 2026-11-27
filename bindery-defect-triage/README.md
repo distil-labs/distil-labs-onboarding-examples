@@ -108,11 +108,10 @@ every generated label from the rule table and count the disagreements. Also coun
 text names a station, which `synthetic_data_generation_instructions` forbids. That defect rate is
 the one worth watching if you adapt this.
 
-**One mutator, over the codes.** Each of its five values names the code and the station and
-severity that lead to it, so the value fixes the answer. A station or severity mutator on its own
-leads the teacher to the wrong label in this task, so `synthetic_data_generation_instructions`
-names every alias and severity and restates rules 1 and 2 instead, which spreads the rows over
-the aliases and keeps the labels right.
+**One mutator, over the codes.** Each of its five values names a code and the stations and
+severities that produce it, so the value alone decides the answer. Separate station or severity
+mutators lead the teacher to the wrong label in this task. Instead,
+`synthetic_data_generation_instructions` restates rules 1 and 2, which keeps the labels right.
 
 **Expect variation between runs.** Generation runs at non-zero temperature, so two runs of this
 directory will not produce the dataset row-for-row. The score that counts is `binary`, the exact
@@ -124,7 +123,7 @@ On 50 rows one row is 0.02.
 | File | Notes |
 |---|---|
 | `base-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 1 epoch at batch 8, one mutator over the five codes |
-| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, the definitions of the 5 codes, and generation instructions that name every alias |
+| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, the definitions of the 5 codes, and generation instructions that restate rules 1 and 2 |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |
 
