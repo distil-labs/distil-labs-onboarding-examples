@@ -42,8 +42,8 @@ to run beside the line.
 
 ## The task in detail
 
-A worked job-input directory for a `classification` build, the only example of that task type
-in this repo. An untrained `Qwen3-0.6B` fails the task; the config distils it from
+A worked job-input directory for a label task: a `question-answering` build whose answer is one
+code from a fixed set of five. An untrained `Qwen3-0.6B` fails the task; the config distils it from
 `zai.glm-5.3-flash-low-thinking` on 512 synthetic examples.
 
 `base-input/` is the whole example. Create the seed dataset from it unchanged. There is nothing
@@ -103,33 +103,34 @@ Three independent failure modes, which is what makes the gap robust:
 The test set is balanced 10 per class and over-samples exactly these cases: stamping at critical
 and major, gluing and casing at critical and major, and the contradictory aliases.
 
-**Check the synthetic data before you train.** Classification labels are cheap to audit: re-derive
+**Check the synthetic data before you train.** Labels are cheap to audit: re-derive
 every generated label from the rule table and count the disagreements. Also count rows whose input
 text names a station, which `synthetic_data_generation_instructions` forbids. That defect rate is
 the one worth watching if you adapt this.
 
-**No mutators.** A station or severity mutator leads the teacher to the wrong label in this task.
-`synthetic_data_generation_instructions` names every alias and severity and restates rules 1 and 2
-instead, which spreads the rows evenly and keeps the labels right.
+**One mutator, over the codes.** Each of its five values names a code and the stations and
+severities that produce it, so the value alone decides the answer. Separate station or severity
+mutators lead the teacher to the wrong label in this task. Instead,
+`synthetic_data_generation_instructions` restates rules 1 and 2, which keeps the labels right.
 
 **Expect variation between runs.** Generation runs at non-zero temperature, so two runs of this
-directory will not produce the dataset row-for-row. Classification is scored by exact label match
-rather than by a judge, so the score is less noisy than the `llm-as-a-judge` examples. On 50 rows
-one row is 0.02.
+directory will not produce the dataset row-for-row. The score that counts is `binary`, the exact
+match on the code, rather than a judge, so it is less noisy than the `llm-as-a-judge` examples.
+On 50 rows one row is 0.02.
 
 ## Files
 
 | File | Notes |
 |---|---|
-| `base-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 1 epoch at batch 8, no mutators, `num_few_shot_examples: 5` |
-| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, `classes_description` for the 5 labels, and generation instructions that name every alias |
+| `base-input/config.yaml` | `Qwen3-0.6B`, `zai.glm-5.3-flash-low-thinking`, 512 generated, 1 epoch at batch 8, one mutator over the five codes |
+| `base-input/job_description.json` | the alias table, the ordered rule table, the input spec, the definitions of the 5 codes, and generation instructions that restate rules 1 and 2 |
 | `base-input/train.jsonl` | 30 seed rows, 6 per class |
 | `base-input/test.jsonl` | 50 test rows, 10 per class |
 
 Four files, one directory, nothing to run first.
 
-Note there is no `llm_as_a_judge_instructions`: it is not valid for classification and the create
-fails with it. Classification is judged by label accuracy.
+Note there is no `llm_as_a_judge_instructions`: the exact match on the code is the measure, so
+the judge's score is a second signal at most.
 
 ## Five things to know if you adapt this
 

@@ -21,7 +21,7 @@ than any setting.
 
 | Example | Task type | Starts from | Teacher | Student |
 |---|---|---|---|---|
-| [`bindery-defect-triage`](bindery-defect-triage/) | `classification` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
+| [`bindery-defect-triage`](bindery-defect-triage/) | `question-answering`, one label | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
 | [`incident-triage`](incident-triage/) | `question-answering` | a labeled dataset, `base-input/` | `zai.glm-5.3-flash-low-thinking` | `Qwen3-0.6B` |
 | [`trail-report-tagging`](trail-report-tagging/) | `question-answering` | production traffic, `traces-input/` | `zai.glm-5.3-low-thinking` | `Qwen3-0.6B` |
 
